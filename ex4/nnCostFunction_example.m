@@ -1,3 +1,4 @@
+  
 function [J grad] = nnCostFunction(nn_params, ...
                                    input_layer_size, ...
                                    hidden_layer_size, ...
@@ -61,45 +62,51 @@ Theta2_grad = zeros(size(Theta2));
 %               the regularization separately and then add them to Theta1_grad
 %               and Theta2_grad from Part 2.
 %
+X=[ones(m,1),X];
+a1=Theta1*X';
+z1=[ones(m,1),sigmoid(a1)'];
+a2=Theta2*z1';
+h=sigmoid(a2);
 
-X_modified = [ones(m,1),X];
-a_layer1 = zeros(size(X_modified,2),1); % X features and bias (+1) dimension vector
-a_layer2 = zeros(hidden_layer_size,1); % hidden layer neuron unit
-a_layer3 = zeros(num_labels,1); % output layer
+yk=zeros(m,num_labels);
 for i=1:m
-    a_layer1 = X_modified(i,:)';
-    z_2 = Theta1 * a_layer1;
-    a_layer2 = sigmoid(z_2);
-    a_layer2 = [1;a_layer2]; % adding +1 bias
-    z_3 = Theta2 * a_layer2;
-    a_layer3 = sigmoid(z_3);
-    vector_y = zeros(num_labels,1);
-    vector_y(y(i)) = 1;
-    
-    %--------------------------compute delta-------------------------------
-    delta_3 = a_layer3 - vector_y;
-    delta_2 = Theta2(:,2:end)'*delta_3.*sigmoidGradient(z_2); % with no theta0
-    %--------------------------compute delta-------------------------------
-    
-    %--------------------------coumpute epsilon----------------------------
-    Theta2_grad = Theta2_grad + delta_3*a_layer2';
-    Theta1_grad = Theta1_grad + delta_2*a_layer1';
-    %--------------------------coumpute epsilon----------------------------
-
-    J = J + sum((-vector_y.*log(a_layer3) - (1-vector_y).*log(1-a_layer3)));
+	yk(i,y(i))=1;
 end
 
+J = (1/m)* sum(sum(((-yk) .* log(h') - (1 - yk) .* log(1 - h'))));
 
-J = J/m; % with no regularized
-Theta1(:,1)=0; Theta2(:,1)=0; % no theta0
-R = lambda/(2*m)* (sum(Theta1.^2,'all') + sum(Theta2.^2,'all') );
-J = J + R; % with regularized
+r=(lambda/2/m)*(sum(sum(Theta1(:,2:end) .^ 2))+sum(sum(Theta2(:,2:end) .^ 2)));
+J=J+r;
 
-Theta1_grad = Theta1_grad./m; % with no regularized
-Theta2_grad = Theta2_grad./m; % with no regularized
 
-Theta1_grad = Theta1_grad + 1/m*lambda*Theta1; %with regularized
-Theta2_grad = Theta2_grad + 1/m*lambda*Theta2; %with regularized
+for ex=1:m
+	a1=X(ex,:);
+	a1=a1';
+	z2=Theta1*a1;
+	a2=[1;sigmoid(z2)];
+	z3=Theta2*a2;
+	a3=sigmoid(z3);
+	y=yk(ex,:);
+	delta3=a3-y';
+	delta2 = Theta2(:,2:end)' * delta3 .* sigmoidGradient(z2);  % delta2 is a 25x1 column vector
+    Theta1_grad = Theta1_grad + delta2 * a1';
+    Theta2_grad = Theta2_grad + delta3 * a2';
+end
+
+Theta1_grad=Theta1_grad ./ m;
+Theta2_grad=Theta2_grad ./ m;
+
+Theta1(:,1) = 0;
+Theta2(:,1) = 0;
+Theta1_grad = Theta1_grad + lambda / m * Theta1;
+Theta2_grad = Theta2_grad + lambda / m * Theta2;
+
+
+
+
+
+
+
 
 % -------------------------------------------------------------
 
